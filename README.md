@@ -9,4 +9,7 @@ See "testscript GroupSCR.R"" and "testscript GroupSCR Marginal.R". Marginal vers
 
 Note, some custom functions share a name between these two samplers, so you must restart the R session when switching samplers so that Nimble will reload the correct versions. 
 
-Disclaimer: This code has not been tested extensively. Testing currently underway.
+Update 1/22/22: Found out the nimble-supplied slice sampler for group size was not correct. Replaced with
+the same Metropolis-Hastings update used in Emmett et al.
+
+Disclaimer: This code has not been tested extensively. I will remove this disclaimer when the code has been tested.

@@ -76,7 +76,21 @@ start.time<-Sys.time()
 Rmodel <- nimbleModel(code=NimModel, constants=constants, data=Nimdata,check=FALSE,
                       inits=Niminits)
 conf <- configureMCMC(Rmodel,monitors=parameters, thin=1, useConjugacy = TRUE)
-# conf$removeSampler(paste("y.P[1:",M,",1:",J,",1:",K,"]", sep=""))
+
+#One REQUIRED sampler replacement. The nimble-selected slice sampler for "counts" does not work correctly.
+#Note, there is a tuning parameter, "count.ups". The custom Metropolis-Hastings update
+#only updates 1 individual/group at a time. "count.ups" determines how many times to do this per
+#iteration. The only general suggestion I have is that "count.ups" should be larger when lambda.P is larger.
+#if lambda.P mixing is poor, try raising "count.ups".
+conf$removeSampler("counts")
+for(i in 1:M){
+  conf$addSampler(target = paste("counts[",i,"]", sep=""),
+                  type = 'countSampler',
+                  control=list(i=i,counts.detected=nimbuild$counts.detected[i],count.ups=5),silent = TRUE)
+}
+
+#Optional sampler replacements
+#jointly update x and y group activity center locations
 conf$removeSampler(paste("s[1:",M,", 1:2]", sep=""))
 for(i in 1:M){
   conf$addSampler(target = paste("s[",i,", 1:2]", sep=""),
@@ -109,3 +123,6 @@ end.time-start.time2 # post-compilation run time
 library(coda)
 mvSamples=as.matrix(Cmcmc$mvSamples)
 plot(mcmc(mvSamples[2:nrow(mvSamples),]))
+
+
+data$Ni #true number of individuals

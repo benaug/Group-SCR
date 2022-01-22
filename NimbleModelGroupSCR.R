@@ -92,3 +92,63 @@ rIndNoDetect <- nimbleFunction(
     return(matrix(0,nrow=J,ncol=K))
   }
 )
+
+#Required custom update for number of individuals/group
+countSampler <- nimbleFunction(
+  contains = sampler_BASE,
+  setup = function(model, mvSaved, target, control) {
+    calcNodes <- model$getDependencies(target)
+    i <- control$i
+    counts.detected <- control$counts.detected
+    count.ups <- control$count.ups
+  },
+  run = function() {
+    if(model$z[i]==0){ #if z is off, propose from prior
+      counts.cand=rpois(1,model$lambda.P[1])
+      model$counts[i] <<- counts.cand
+      model$calculate(calcNodes)
+      copy(from = model, to = mvSaved, row = 1, nodes = calcNodes, logProb = TRUE)
+    }else{ #if z is on, use Metropolis-Hastings
+      #we'll propose to add or subtract 1 individual with equal probability.
+      #if adding, we can always choose a individual to turn on
+      #if subtracting, we need to consider that if we choose a detected individual
+      #it cannot be turned off. This could be incorporated into the proposal probs
+      #but I'm just rejecting the update if you select a detected individual to subtract.
+      #You must account for this or it won't work.
+      for(up in 1:count.ups){ #how many updates per iteration?
+        #propose to add/subtract 1
+        updown=rbinom(1,1,0.5) #p=0.5 is symmetric
+        reject=FALSE #we reject if 1) proposed counts <1 (bc zero-truncation) or 
+        #2) you select a detected individual
+        if(updown==0){#subtract
+          counts.cand=model$counts[i]-1
+          if(model$counts[i]<1){
+            reject=TRUE
+          }else{
+            tmp=rcat(1,rep(1/model$counts[i],model$counts[i])) #select one of the individuals in this group
+            if(tmp<=counts.detected){ #is it one of the detected individuals?
+              reject=TRUE #if so, we reject
+            }
+          }
+        }else{#add
+          counts.cand=model$counts[i]+1
+        }
+        if(!reject){
+          model.lp.initial <- model$getLogProb(calcNodes)
+          model$counts[i] <<- counts.cand
+          model.lp.proposed <- model$calculate(calcNodes)#proposed logProb
+          log_MH_ratio <- (model.lp.proposed) - (model.lp.initial)
+          accept <- decide(log_MH_ratio)
+          if(accept) {
+            copy(from = model, to = mvSaved, row = 1, nodes = calcNodes, logProb = TRUE)
+          } else {
+            copy(from = mvSaved, to = model, row = 1, nodes = calcNodes, logProb = TRUE)
+          }
+        }
+      }
+    }
+  },
+  methods = list( reset = function () {} )
+)
+
+
