@@ -9,7 +9,6 @@ See "testscript GroupSCR.R"" and "testscript GroupSCR Marginal.R". Marginal vers
 
 Note, some custom functions share a name between these two samplers, so you must restart the R session when switching samplers so that Nimble will reload the correct versions. 
 
-Update 1/22/22: Found out the nimble-supplied slice sampler for group size was not correct. Replaced with
-the same Metropolis-Hastings update used in Emmett et al.
+Update 12/21/22: There was a bug in the custom count update where I was simulating from a Poisson instead of zero-truncated Poisson. I've fixed this and started formal testing (finally). Also, I think I'll make a binary version.
 
 Disclaimer: This code has not been tested extensively. I will remove this disclaimer when the code has been tested.

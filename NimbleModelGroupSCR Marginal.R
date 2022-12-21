@@ -14,7 +14,7 @@ NimModel <- nimbleCode({
     s[i,1] ~ dunif(xlim[1],xlim[2])
     s[i,2] ~ dunif(ylim[1],ylim[2])
     #group size
-    counts[i] ~ T(dpois(lambda.P),1,Inf) #zero-truncated Poisson
+    counts[i] ~ dztpois(lambda.P) #zero-truncated Poisson
     counts.zero[i] <- counts[i]-counts.detected[i] #number of undetected group members
     #site visitation expected values
     d2[i,1:J] <- Getd2(s=s[i,1:2],X=X[1:J,1:2],J=J,z=z[i])
@@ -112,6 +112,42 @@ rGroupVisitDetect <- nimbleFunction(
   }
 )
 
+dztpois <- nimbleFunction(
+  run = function(x=double(0), lambda.P = double(0), log = integer(0)) {
+    returnType(double(0))  
+    if(x==0){
+      prob = 0
+    }else{
+      prob = dpois(x, lambda.P)/(1 - exp(-lambda.P))
+    }
+    if(log){
+      return(log(prob))
+    }else{
+      return(prob)
+    }
+  }
+)
+
+#From Peter Dalgaard via Simon Bonnor
+#https://simon.bonners.ca/bonner-lab/wpblog/?p=102
+rztpois <- nimbleFunction(
+  run = function(n=integer(0), lambda.P = double(0)) {
+    returnType(double(0))
+    if(n>1){
+      print("rztpois only handles n=1")
+    }else{
+      tol=1e-10
+      if(lambda.P < tol){
+        x <- 1 #if lambda practically 0, all obs will be 1
+      }else{
+        tmp <- runif(n, dpois(0, lambda.P), 1)
+        x <- qpois(tmp[1], lambda.P)
+      }
+      return(x)
+    }
+  }
+)
+
 #Required custom update for number of individuals/group
 countSampler <- nimbleFunction(
   contains = sampler_BASE,
@@ -123,7 +159,7 @@ countSampler <- nimbleFunction(
   },
   run = function() {
     if(model$z[i]==0){ #if z is off, propose from prior
-      counts.cand=rpois(1,model$lambda.P[1])
+      counts.cand=rztpois(1,model$lambda.P[1])
       model$counts[i] <<- counts.cand
       model$calculate(calcNodes)
       copy(from = model, to = mvSaved, row = 1, nodes = calcNodes, logProb = TRUE)
