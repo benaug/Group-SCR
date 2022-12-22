@@ -1,4 +1,4 @@
-dztpois=function(k,lambda){
+dztpoisR=function(k,lambda){
   return(lambda^k/((exp(lambda)-1)*factorial(k)))
 }
 
@@ -91,10 +91,10 @@ init.group=function(data,M=NA,inits=NA){
     if(z[i]==1){
       counts[i]=sum(groupID==i)
       counts.detected[i]=counts[i]
-      ll.group[i]=log(dztpois(counts[i],lambda.P))
+      ll.group[i]=log(dztpoisR(counts[i],lambda.P))
     }else{
       counts[i]=rzapois(1,lambda.P)
-      ll.group[i]=log(dztpois(counts[i],lambda.P))
+      ll.group[i]=log(dztpoisR(counts[i],lambda.P))
     }
   }
   ll.group.sum=sum(ll.group)
