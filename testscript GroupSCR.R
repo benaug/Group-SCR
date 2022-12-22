@@ -1,6 +1,6 @@
 #This sampler samples the latent site visits (marginal version marginalizes them out)
 #Mixes worse than marginal sampler for site visitation and detection parameters, but runs faster.
-#Marginal sampler probably most efficient.
+#Marginal sampler probably more efficient and definiately uses less RAM.
 
 source("sim.GroupSCR.R")
 source("init.group.R")

@@ -1,6 +1,6 @@
 #This sampler marginalizes out site visitation. 
 #Mixes better than full CDL sampler for site visitation and detection parameters
-#This version probably more efficient.
+#This version probably more efficient and uses less RAM.
 
 source("sim.GroupSCR.R")
 source("init.group.R")

@@ -17,7 +17,8 @@ NimModel <- nimbleCode({
     counts[i] ~ dztpois(lambda.P) #zero-truncated Poisson
     counts.zero[i] <- counts[i]-counts.detected[i] #number of undetected group members
     #site visitation - don't skip z[i]=0 here so y.P in place when turning z's on
-    lamd.P[i,1:J] <- GetVisitRate(s=s[i,1:2],X=X[1:J,1:2],lam0.P=lam0.P,sigma.P=sigma.P,J=J)
+    d2[i,1:J] <- Getd2(s=s[i,1:2],X=X[1:J,1:2],J=J)
+    lamd.P[i,1:J] <- GetVisitRate(d2=d2[i,1:J],lam0.P=lam0.P,sigma.P=sigma.P,J=J)
     for(j in 1:J){
       for(k in 1:K){
         y.P[i,j,k] ~ dpois(lamd.P[i,j])
@@ -43,11 +44,16 @@ NimModel <- nimbleCode({
   N.ind <- sum(counts[1:M]*z[1:M])
 })# end model
 
-
-GetVisitRate <- nimbleFunction(
-  run = function(s = double(1), X=double(2), lam0.P=double(0), sigma.P=double(0), J=double(0)){ 
+Getd2 <- nimbleFunction(
+  run = function(s = double(1), X=double(2), J=double(0)){ 
     returnType(double(1))
     d2 <- ((s[1]-X[1:J,1])^2 + (s[2]-X[1:J,2])^2)
+    return(d2)
+  }
+)
+GetVisitRate <- nimbleFunction(
+  run = function(d2 = double(1), lam0.P=double(0), sigma.P=double(0), J=double(0)){ 
+    returnType(double(1))
     lamd.P <- lam0.P*exp(-d2/(2*sigma.P^2))
     return(lamd.P)
   }
