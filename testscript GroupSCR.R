@@ -6,7 +6,6 @@ source("sim.GroupSCR.R")
 source("init.group.R")
 library(nimble)
 source("NimbleModelGroupSCR.R")
-source("sSampler.R")
 
 Np <- 20 #number of groups
 lambda.P <- 5 #group size parameter (zero-truncated Poisson lambda)
