@@ -1,8 +1,5 @@
 #This version has Bernoulli group site visits and Bernoulli individual detections.
 #Also, marginalizes over group site use
-#Can aggregate data over occasions for this model. Doing that here for
-#efficiency, but that means no occasion effects. Can modify code if those are required.
-#*waives hands*
 
 source("sim.GroupSCR.Bernoulli.R")
 source("init.group.Bernoulli.R")
@@ -12,10 +9,10 @@ source("sSampler.R")
 
 Np <- 20 #number of groups
 lambda.P <- 5 #group size parameter (zero-truncated Poisson lambda)
-p0.P <- 0.5 #probability of group visit at activity center
+p0.P <- 0.86 #probability of group visit at activity center
 sigma.P <- 0.75 #group site visit spatial scale parameter
 p.I <- 0.25 #individual detection probability|group site visitation
-K <- 5 #number of occasions.
+K <- 2 #number of occasions.
 X <- expand.grid(1:10,1:10) #trapping array
 buff <- 3 #state space buffer
 
@@ -67,11 +64,7 @@ constants <- list(M=M,J=J,K=K,xlim=data$xlim,ylim=data$ylim,ni=ni,
 #Supply data to Nimble.
 z.data <- nimbuild$z
 z.data[z.data==0] <- NA #unobserved group z's are unknown, must be estimated
-#y.I.unobs are 0 capture histories for each group to account for uncaptured individuals
-# Nimdata <- list(y.I=data$y.I.obs,y.I.unobs=array(0,dim=c(M,J,K)),
-#               y.P=array(NA,dim=c(M,J,K)),counts=rep(NA,M),X=data$X,
-#               z=z.data)
-Nimdata <- list(y.I=apply(data$y.I.obs,c(1,2),sum),y.I.unobs=matrix(0,M,J),
+Nimdata <- list(y.I=data$y.I.obs,y.I.unobs=array(0,dim=c(M,J,K)),
               counts=rep(NA,M),X=data$X,z=z.data)
 
 # set parameters to monitor
@@ -125,7 +118,7 @@ Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
 
 # Run the model
 start.time2<-Sys.time()
-Cmcmc$run(3000,reset=FALSE) #short run for demonstration. Can run again to continue sampling where it stopped.
+Cmcmc$run(1000,reset=FALSE) #short run for demonstration. Can run again to continue sampling where it stopped.
 end.time<-Sys.time()
 end.time-start.time  # total time for compilation, replacing samplers, and fitting
 end.time-start.time2 # post-compilation run time

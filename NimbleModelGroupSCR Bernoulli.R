@@ -23,20 +23,24 @@ NimModel <- nimbleCode({
     d2[i,1:J] <- Getd2(s=s[i,1:2],X=X[1:J,1:2],J=J)
     pd.P[i,1:J] <- GetVisitProb(d2=d2[i,1:J],p0.P=p0.P,sigma.P=sigma.P,J=J)
     for(j in 1:J){
-      y.P[i,j] ~ dbinom(prob=pd.P[i,j], size=K)
+      for(k in 1:K){
+        y.P[i,j,k] ~ dbern(pd.P[i,j])
+      }
     }
   }
   #Individual likelihoods
   #observed individuals
   for(l in 1:ni){ #loop over individuals
     for(j in 1:J){
-      y.I[l,j] ~ dbinom(prob=p.I, size=y.P[groupID[l],j])
+      for(k in 1:K){
+        y.I[l,j,k] ~ dbern(p.I*y.P[groupID[l],j,k]) #zeros out p if no group visits for this ind
+      }
     }
   }
   #unobserved individuals
   for(i in 1:M){#loop over groups
     #these data are all 0 capture histories. can skip z[i]=0 here
-    y.I.unobs[i,1:J] ~ dIndNoDetect(y.P=y.P[i,1:J],counts.zero=counts.zero[i],
+    y.I.unobs[i,1:J,1:K] ~ dIndNoDetect(y.P=y.P[i,1:J,1:K],counts.zero=counts.zero[i],
                                       p.I=p.I,z=z[i])
   }
   
@@ -60,7 +64,7 @@ GetVisitProb <- nimbleFunction(
 )
 
 dIndNoDetect <- nimbleFunction(
-  run = function(x = double(1), y.P = double(1), z = double(0), counts.zero = double(0),
+  run = function(x = double(2), y.P = double(2), z = double(0), counts.zero = double(0),
                  p.I = double(0), log = integer(0)) {
     returnType(double(0))
     if(z==0){
@@ -80,11 +84,12 @@ dIndNoDetect <- nimbleFunction(
 
 #dummy RNG to make nimble happy, not used
 rIndNoDetect <- nimbleFunction(
-  run = function(n=integer(0), y.P = double(1), z = double(0), counts.zero = double(0),
+  run = function(n=integer(0), y.P = double(2), z = double(0), counts.zero = double(0),
                  p.I = double(0)) {
-    returnType(double(1))
+    returnType(double(2))
     J=nimDim(y.P)[1]
-    return(rep(0,J))
+    K=nimDim(y.P)[2]
+    return(matrix(0,J,K))
   }
 )
 

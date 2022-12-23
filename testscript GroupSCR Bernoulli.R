@@ -10,10 +10,10 @@ source("NimbleModelGroupSCR Bernoulli.R")
 
 Np <- 20 #number of groups
 lambda.P <- 5 #group size parameter (zero-truncated Poisson lambda)
-p0.P <- 0.5 #probability of group visit at activity center
+p0.P <- 0.86 #probability of group visit at activity center
 sigma.P <- 0.75 #group site visit spatial scale parameter
 p.I <- 0.25 #individual detection probability|group site visitation
-K <- 5 #number of occasions.
+K <- 2 #number of occasions.
 X <- expand.grid(1:10,1:10) #trapping array
 buff <- 3 #state space buffer
 
@@ -52,7 +52,7 @@ inits <- list(lambda.P=lambda.P,p0.P=p0.P,sigma.P=sigma.P,p.I=p.I)
 nimbuild <- init.group.Bernoulli(data=data,M=M,inits=inits)
 
 #inits for nimble
-Niminits <- list(z=nimbuild$z,s=nimbuild$s,y.P=apply(nimbuild$y.P,c(1,2),sum),counts=nimbuild$counts,
+Niminits <- list(z=nimbuild$z,s=nimbuild$s,y.P=nimbuild$y.P,counts=nimbuild$counts,
                  #Starting at true parameter values to speed convergence. Don't do this in practice.
                  lambda.P=lambda.P,p0.P=p0.P,sigma.P=sigma.P,p.I=p.I)
 
@@ -69,8 +69,8 @@ z.data[z.data==0] <- NA #unobserved group z's are unknown, must be estimated
 # Nimdata <- list(y.I=data$y.I.obs,y.I.unobs=array(0,dim=c(M,J,K)),
 #               y.P=array(NA,dim=c(M,J,K)),counts=rep(NA,M),X=data$X,
 #               z=z.data)
-Nimdata <- list(y.I=apply(data$y.I.obs,c(1,2),sum),y.I.unobs=matrix(0,M,J),
-              y.P=matrix(NA,M,J),counts=rep(NA,M),X=data$X,
+Nimdata <- list(y.I=data$y.I.obs,y.I.unobs=array(0,dim=c(M,J,K)),
+              y.P=array(NA,dim=c(M,J,K)),counts=rep(NA,M),X=data$X,
               z=z.data)
 
 # set parameters to monitor
@@ -119,7 +119,7 @@ Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
 
 # Run the model
 start.time2<-Sys.time()
-Cmcmc$run(2500,reset=FALSE) #short run for demonstration. Can run again to continue sampling where it stopped.
+Cmcmc$run(1000,reset=FALSE) #short run for demonstration. Can run again to continue sampling where it stopped.
 end.time<-Sys.time()
 end.time-start.time  # total time for compilation, replacing samplers, and fitting
 end.time-start.time2 # post-compilation run time
@@ -127,7 +127,7 @@ end.time-start.time2 # post-compilation run time
 
 library(coda)
 mvSamples <- as.matrix(Cmcmc$mvSamples)
-plot(mcmc(mvSamples[250:nrow(mvSamples),]))
+plot(mcmc(mvSamples[2:nrow(mvSamples),]))
 
 
 data$Ni #true number of individuals

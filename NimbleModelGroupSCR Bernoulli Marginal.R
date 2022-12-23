@@ -23,7 +23,7 @@ NimModel <- nimbleCode({
     #Trickery here to make nimble do what we want
     #y.I.unobs are all 0 capture histories for undetected group members
     #y.I captured ind data fed in as an argument. Subsetting for group i inside function
-    y.I.unobs[i,1:J] ~ dGroupVisitDetect(y.I[1:ni,1:J],this.group=i,groupID=groupID[1:ni],
+    y.I.unobs[i,1:J,1:K] ~ dGroupVisitDetect(y.I[1:ni,1:J,1:K],this.group=i,groupID=groupID[1:ni],
                                              p.I=p.I,pd.P=pd.P[i,1:J],z=z[i],
                                              counts.zero=counts.zero[i],J=J,K=K)
   }
@@ -46,7 +46,7 @@ GetVisitProb <- nimbleFunction(
 
 
 dGroupVisitDetect <- nimbleFunction(
-  run = function(x = double(1), y.I = double(2), this.group = double(0), groupID = double(1),
+  run = function(x = double(2), y.I = double(3), this.group = double(0), groupID = double(1),
                  p.I = double(0), pd.P = double(1),
                  z = double(0), counts.zero = double(0),J = double(0), K = double(0),
                  log = integer(0)) {
@@ -59,30 +59,32 @@ dGroupVisitDetect <- nimbleFunction(
       }else{
         group.idx <- which(groupID==this.group)
         n.group <- length(group.idx)
-        ll.y=rep(0,J)
+        ll.y=matrix(0,nrow=J,ncol=K)
         for(j in 1:J){
-          logProb.detect <- rep(0,K+1)
-          logProb.nodetect <- rep(0,K+1)
-          logProb.visit <- rep(0,K+1)
-          for(v in 0:K){ #can be visit a minimum of 0 times and max of K times
-            #group site visit likelihood
-            logProb.visit[v+1] <- dbinom(v,prob=pd.P[j],size=K,log=log)
-            #undetected ind likelihood
-            if(counts.zero>0){
-              logProb.nodetect[v+1] <- counts.zero*dbinom(x[j],size=v,prob=p.I,log=log)
-            }
-            #detected ind likelihoods
-            if(n.group>0){#were any group members detected?
-              for(i in 1:n.group){#add group member detection likelihoods
-                logProb.detect[v+1] <- logProb.detect[v+1]+dbinom(y.I[group.idx[i],j],size=v,prob=p.I,log=log)
+          for(k in 1:K){
+            logProb.detect <- rep(0,2)
+            logProb.nodetect <- rep(0,2)
+            logProb.visit <- rep(0,2)
+            for(v in 0:1){
+              #group site visit likelihood
+              logProb.visit[v+1] <- dbinom(v,prob=pd.P[j],size=1,log=log)
+              #undetected ind likelihood
+              if(counts.zero>0){
+                logProb.nodetect[v+1] <- counts.zero*dbinom(x[j,k],size=1,prob=v*p.I,log=log)
+              }
+              #detected ind likelihoods
+              if(n.group>0){#were any group members detected?
+                for(i in 1:n.group){#add group member detection likelihoods
+                  logProb.detect[v+1] <- logProb.detect[v+1]+dbinom(y.I[group.idx[i],j,k],size=1,prob=v*p.I,log=log)
+                }
               }
             }
+            #total likelihood for site j, occasion k over all v
+            logProb.total <- logProb.visit+logProb.detect+logProb.nodetect
+            maxlp=max(logProb.total)
+            #marginal (over v) likelihood for site j, occasion k
+            ll.y[j,k] <- maxlp+log(sum(exp(logProb.total-maxlp)))
           }
-          #total likelihood for site j, occasion k over all v
-          logProb.total <- logProb.visit+logProb.detect+logProb.nodetect
-          maxlp=max(logProb.total)
-          #marginal (over v) likelihood for site j, occasion k
-          ll.y[j] <- maxlp+log(sum(exp(logProb.total-maxlp)))
         }
       }
       return(sum(ll.y))
@@ -92,11 +94,11 @@ dGroupVisitDetect <- nimbleFunction(
 
 #dummy RNG to make nimble happy, not used
 rGroupVisitDetect <- nimbleFunction(
-  run = function(n=integer(0),  y.I = double(2), this.group = double(0), groupID = double(1),
+  run = function(n=integer(0),  y.I = double(3), this.group = double(0), groupID = double(1),
                  p.I = double(0), pd.P = double(1),
                  z = double(0), counts.zero = double(0),J = double(0), K = double(0)) {
-    returnType(double(1))
-    return(rep(0,J))
+    returnType(double(2))
+    return(matrix(0,J,K))
   }
 )
 
@@ -194,5 +196,3 @@ countSampler <- nimbleFunction(
   },
   methods = list( reset = function () {} )
 )
-
-
