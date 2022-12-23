@@ -1,7 +1,4 @@
 #This version has Bernoulli group site visits and Bernoulli individual detections.
-#Can aggregate data over occasions for this model. Doing that here for
-#efficiency, but that means no occasion effects. Can modify code if those are required.
-#*waives hands*
 
 source("sim.GroupSCR.Bernoulli.R")
 source("init.group.Bernoulli.R")
