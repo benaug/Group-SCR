@@ -1,5 +1,5 @@
 # Group SCR
-Group SCR sampler from Emmett et al. (2021) implemented in Nimble. Assumes individual ID is known, but pack ID is not.
+Group SCR sampler from Emmett et al. (2021) implemented in Nimble. Assumes individual and pack ID is known. Can possibly be extended to allow for unknown pack IDs.
 
 https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecy.3576
 
