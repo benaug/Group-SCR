@@ -1,5 +1,3 @@
-#could do some more vectorization, skip some z[i]==0 calculations...
-
 NimModel <- nimbleCode({
   #group size prior
   lambda.P ~ dunif(0,100)

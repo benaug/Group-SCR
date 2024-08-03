@@ -2,9 +2,9 @@ sSampler <- nimbleFunction(
   # name = 'sampler_RW',
   contains = sampler_BASE,
   setup = function(model, mvSaved, target, control) {
-    i<-control$i    
-    xlim<-control$xlim
-    ylim<-control$ylim
+    i <- control$i    
+    xlim <- control$xlim
+    ylim <- control$ylim
     ## control list extraction
     # logScale            <- extractControlElement(control, 'log',                 FALSE)
     # reflective          <- extractControlElement(control, 'reflective',          FALSE)
@@ -45,8 +45,8 @@ sSampler <- nimbleFunction(
       model$calculate(calcNodes)
       copy(from = model, to = mvSaved, row = 1, nodes = calcNodes, logProb = TRUE)
     }else{#MH
-      s.cand=c(rnorm(1,model$s[i,1],scale), rnorm(1,model$s[i,2],scale))
-      inbox= s.cand[1]< xlim[2] & s.cand[1]> xlim[1] & s.cand[2] < ylim[2] & s.cand[2] > ylim[1]
+      s.cand <- c(rnorm(1,model$s[i,1],scale), rnorm(1,model$s[i,2],scale))
+      inbox <- s.cand[1]< xlim[2] & s.cand[1]> xlim[1] & s.cand[2] < ylim[2] & s.cand[2] > ylim[1]
       if(inbox){
         model_lp_initial <- model$getLogProb(calcNodes)
         model$s[i, 1:2] <<- s.cand

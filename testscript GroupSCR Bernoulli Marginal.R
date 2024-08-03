@@ -7,12 +7,12 @@ library(nimble)
 source("NimbleModelGroupSCR Bernoulli Marginal.R")
 source("sSampler.R")
 
-Np <- 20 #number of groups
-lambda.P <- 5 #group size parameter (zero-truncated Poisson lambda)
-p0.P <- 0.86 #probability of group visit at activity center
+Np <- 15 #number of groups
+lambda.P <- 10 #group size parameter (zero-truncated Poisson lambda)
+p0.P <- 0.25 #probability of group visit at activity center
 sigma.P <- 0.75 #group site visit spatial scale parameter
 p.I <- 0.25 #individual detection probability|group site visitation
-K <- 2 #number of occasions.
+K <- 10 #number of occasions.
 X <- expand.grid(1:10,1:10) #trapping array
 buff <- 3 #state space buffer
 
@@ -40,11 +40,11 @@ for(i in capi){
   }
 }
 points(data$s,cex=2,col="#56B4E9",pch=16)
-points(data$s,pch=as.character(data$NperGroup),cex=0.75)
+text(x=data$s[,1],y=data$s[,2],labels=as.character(data$NperGroup),cex=0.75)
 points(X,pch=4)
 
 ####Fit model
-M <- 50 #group data augmentation level
+M <- 40 #group data augmentation level
 
 #initialize some data objects/latent variables
 inits <- list(lambda.P=lambda.P,p0.P=p0.P,sigma.P=sigma.P,p.I=p.I)
@@ -69,12 +69,12 @@ Nimdata <- list(y.I=data$y.I.obs,y.I.unobs=array(0,dim=c(M,J,K)),
 
 # set parameters to monitor
 parameters <- c('psi',"lambda.P","p0.P","sigma.P","p.I","N.group","N.ind","psi")
-
+nt <- 2 #set thinning rate
 
 start.time<-Sys.time()
 Rmodel <- nimbleModel(code=NimModel, constants=constants, data=Nimdata,check=FALSE,
                       inits=Niminits)
-conf <- configureMCMC(Rmodel,monitors=parameters, thin=1, useConjugacy = TRUE)
+conf <- configureMCMC(Rmodel,monitors=parameters, thin=nt, useConjugacy = FALSE)
 
 #One REQUIRED sampler replacement. The nimble-selected slice sampler for "counts" does not work correctly.
 #Note, there is a tuning parameter, "count.ups". The custom Metropolis-Hastings update
@@ -88,27 +88,28 @@ for(i in 1:M){
                   control=list(i=i,counts.detected=nimbuild$counts.detected[i],count.ups=5),silent = TRUE)
 }
 
-#Optional sampler replacements
-#replace default activity center sampler that updates x and y locations separately with a joint update
-#should be a little more efficient. Could use AFslice or block random walk.
-#BUT! I suggest using "sSampler", which is a RW block update for the x and y locs with no covariance,
-#AND only tuned for when z=1. When z=0, it draws from the prior, assumed to be uniform. 
+#"sSampler" is a RW block update for the x and y locs with no covariance,
+#that only tunes when z=1. When z=0, it draws from the prior, assumed to be uniform. 
 conf$removeSampler(paste("s[1:",M,", 1:2]", sep=""))
 for(i in 1:M){
-  # conf$addSampler(target = paste("s[",i,", 1:2]", sep=""),
-  #                 type = 'RW_block',control=list(adaptive=TRUE,adaptScaleOnly=TRUE),silent = TRUE)
   conf$addSampler(target = paste("s[",i,", 1:2]", sep=""),
                   type = 'sSampler',control=list(i=i,xlim=data$xlim,ylim=data$ylim),silent = TRUE)
 }
 
-#AF slice really improves mixing, but slower than independent RW samplers. Probably a good trade-off.
-#But does improved mixing for these params propagate to N.ind and N.group?
-#RW_block may be efficient, but takes longer to converge than independent RW samplers.
-conf$removeSampler(c("p.I","p0.P","sigma.P"))
-conf$addSampler(target = c("p.I","p0.P","sigma.P"),
+#p0.P and sigma.P likely correlated, consider blocking. If data very sparse, p.I may be correlated with p0.P and sigma.p, too.
+#AF slice really improves mixing, but slower than block RW samplers. Probably a good trade-off.
+#remove independent samplers and add AF_slice
+conf$removeSampler(c("p0.P","sigma.P"))
+conf$addSampler(target = c("p0.P","sigma.P"),
                 type = 'AF_slice',
                 control = list(adaptive=TRUE),
                 silent = TRUE)
+#keep independent samplers and add RW block
+# conf$addSampler(target = c("p0.P","sigma.P"),
+#                 type = 'RW_block',
+#                 control = list(adaptive=TRUE),
+#                 silent = TRUE)
+
 
 # Build and compile
 Rmcmc <- buildMCMC(conf)
@@ -117,9 +118,9 @@ Cmodel <- compileNimble(Rmodel)
 Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
 
 # Run the model
-start.time2<-Sys.time()
-Cmcmc$run(1000,reset=FALSE) #short run for demonstration. Can run again to continue sampling where it stopped.
-end.time<-Sys.time()
+start.time2 <- Sys.time()
+Cmcmc$run(2500,reset=FALSE) #short run for demonstration. Can run again to continue sampling where it stopped.
+end.time <- Sys.time()
 end.time-start.time  # total time for compilation, replacing samplers, and fitting
 end.time-start.time2 # post-compilation run time
 
@@ -130,3 +131,7 @@ plot(mcmc(mvSamples[25:nrow(mvSamples),]))
 
 
 data$Ni #true number of individuals
+
+#check posterior correlation
+cor(mcmc(mvSamples[25:nrow(mvSamples),]))
+

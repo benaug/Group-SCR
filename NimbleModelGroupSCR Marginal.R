@@ -44,6 +44,8 @@ GetVisitRate <- nimbleFunction(
   }
 )
 
+#this version much faster because for each group and trap, we only need to compute the likelihood
+#for occasions with 0 detections once, because it is the same for all 0 detection occasions.
 dGroupVisitDetect <- nimbleFunction(
   run = function(x = double(2), y.I = double(3), this.group = double(0), groupID = double(1),
                  lambda.I = double(0), lamd.P = double(1),
@@ -58,38 +60,102 @@ dGroupVisitDetect <- nimbleFunction(
       }else{
         group.idx <- which(groupID==this.group)
         n.group <- length(group.idx)
-        ll.y=matrix(0,nrow=J,ncol=K)
+        lp.y <- matrix(0,nrow=J,ncol=K)
+        #undetected ind likelihood - only need to calculate once, does not depend on j,k
+        logProb.nodetect <- rep(0,maxvisit+1)
+        if(counts.zero>0){
+          for(v in 0:maxvisit){
+            logProb.nodetect[v+1] <- counts.zero*dpois(0,v*lambda.I,log=log)
+          }
+        }
         for(j in 1:J){
+          fill.zeros <- FALSE #have we encountered a zero detection k for this trap, yet?
           for(k in 1:K){
-            logProb.detect <- rep(0,maxvisit+1)
-            logProb.nodetect <- rep(0,maxvisit+1)
-            logProb.visit <- rep(0,maxvisit+1)
-            for(v in 0:maxvisit){
-              #group site visit likelihood
-              logProb.visit[v+1] <- dpois(v,lamd.P[j],log=log)
-              #undetected ind likelihood
-              if(counts.zero>0){
-                logProb.nodetect[v+1] <- counts.zero*dpois(x[j,k],v*lambda.I,log=log)
-              }
-              #detected ind likelihoods
-              if(n.group>0){#were any group members detected?
-                for(i in 1:n.group){#add group member detection likelihoods
-                  logProb.detect[v+1] <- logProb.detect[v+1]+dpois(y.I[group.idx[i],j,k],v*lambda.I,log=log)
+            #count detections for this group at this j-k
+            detects <- 0
+            for(i in 1:n.group){
+              detects <- detects + y.I[group.idx[i],j,k]
+            }
+            if(!fill.zeros|detects>0){ #compute if we have detections, or if there are 0 detections and we haven't computed that, yet
+              logProb.detect <- rep(0,maxvisit+1)
+              logProb.visit <- rep(0,maxvisit+1)
+              for(v in 0:maxvisit){
+                #group site visit likelihood
+                logProb.visit[v+1] <- dpois(v,lamd.P[j],log=log)
+                #detected ind likelihoods
+                if(n.group>0){#were any group members detected?
+                  for(i in 1:n.group){#add group member detection likelihoods
+                    logProb.detect[v+1] <- logProb.detect[v+1]+dpois(y.I[group.idx[i],j,k],v*lambda.I,log=log)
+                  }
                 }
               }
+              #total likelihood for site j, occasion k over all v
+              logProb.total <- logProb.visit+logProb.detect+logProb.nodetect
+              maxlp <- max(logProb.total)
+              #marginal (over v) likelihood for site j, occasion k
+              lp.y[j,k] <- maxlp+log(sum(exp(logProb.total-maxlp)))
+              if(detects==0){
+                fill.zeros <- TRUE
+                lp.zero <- lp.y[j,k]
+              }
+            }else{#0 detection occasion likelihood already computed, fill in for the remainder
+              lp.y[j,k] <- lp.zero
             }
-            #total likelihood for site j, occasion k over all v
-            logProb.total <- logProb.visit+logProb.detect+logProb.nodetect
-            maxlp=max(logProb.total)
-            #marginal (over v) likelihood for site j, occasion k
-            ll.y[j,k] <- maxlp+log(sum(exp(logProb.total-maxlp)))
           }
         }
       }
-      return(sum(ll.y))
+      return(sum(lp.y))
     }
   }
 )
+
+#this one computes every i x j x k, much slower
+# dGroupVisitDetect <- nimbleFunction(
+#   run = function(x = double(2), y.I = double(3), this.group = double(0), groupID = double(1),
+#                  lambda.I = double(0), lamd.P = double(1),
+#                  z = double(0), counts.zero = double(0),J = double(0), K = double(0),
+#                  maxvisit = double(0), log = integer(0)) {
+#     returnType(double(0))
+#     if(z==0){
+#       return(0)
+#     }else{
+#       if(counts.zero<0){#keeps counts >= counts.detected
+#         return(-Inf)
+#       }else{
+#         group.idx <- which(groupID==this.group)
+#         n.group <- length(group.idx)
+#         lp.y <- matrix(0,nrow=J,ncol=K)
+#         for(j in 1:J){
+#           for(k in 1:K){
+#             logProb.detect <- rep(0,maxvisit+1)
+#             logProb.nodetect <- rep(0,maxvisit+1)
+#             logProb.visit <- rep(0,maxvisit+1)
+#             for(v in 0:maxvisit){
+#               #group site visit likelihood
+#               logProb.visit[v+1] <- dpois(v,lamd.P[j],log=log)
+#               #undetected ind likelihood
+#               if(counts.zero>0){
+#                 logProb.nodetect[v+1] <- counts.zero*dpois(x[j,k],v*lambda.I,log=log)
+#               }
+#               #detected ind likelihoods
+#               if(n.group>0){#were any group members detected?
+#                 for(i in 1:n.group){#add group member detection likelihoods
+#                   logProb.detect[v+1] <- logProb.detect[v+1]+dpois(y.I[group.idx[i],j,k],v*lambda.I,log=log)
+#                 }
+#               }
+#             }
+#             #total likelihood for site j, occasion k over all v
+#             logProb.total <- logProb.visit+logProb.detect+logProb.nodetect
+#             maxlp <- max(logProb.total)
+#             #marginal (over v) likelihood for site j, occasion k
+#             lp.y[j,k] <- maxlp+log(sum(exp(logProb.total-maxlp)))
+#           }
+#         }
+#       }
+#       return(sum(lp.y))
+#     }
+#   }
+# )
 
 #dummy RNG to make nimble happy, not used
 rGroupVisitDetect <- nimbleFunction(
