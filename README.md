@@ -16,3 +16,5 @@ All 4 versions have been tested via simulation with the parameter values and sam
 Note, some custom functions share a name between these two samplers, so you must restart the R session when switching samplers so that Nimble will reload the correct versions or deregister them.
 
 Final note: This model can be very slow due to the group site visitation latent variables and becomes progressively slower as the number of groups, individuals, traps, and occasions increase. The occasion-level data is necessary to fit the model, so we cannot aggregate detections over occasions and work with the "i x j" data. This is why the testscripts are set up with K=2. K=1 could also be handled, but requires changes to custom updates, etc., because nimble won't let you use an array with one dimension size being 1. E.g., M x J x K works, M x J x 1 does not work as an array, you need to tell nimble it is an M x J matrix.
+
+8/4/24: Improved efficiency of the samplers that marginalize over site visits, can handle more occasions now.
