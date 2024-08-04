@@ -73,8 +73,10 @@ dGroupVisitDetect <- nimbleFunction(
           for(k in 1:K){
             #count detections for this group at this j-k
             detects <- 0
-            for(i in 1:n.group){
-              detects <- detects + y.I[group.idx[i],j,k]
+            if(n.group>0){
+              for(i in 1:n.group){
+                detects <- detects + y.I[group.idx[i],j,k]
+              }
             }
             if(!fill.zeros|detects>0){ #compute if we have detections, or if there are 0 detections and we haven't computed that, yet
               logProb.detect <- rep(0,maxvisit+1)
