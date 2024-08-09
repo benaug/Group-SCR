@@ -71,6 +71,7 @@ dGroupVisitDetect <- nimbleFunction(
           for(k in 1:K){
             #count detections for this group at this j-k
             if(n.group>0){
+              detects <- 0
               for(i in 1:n.group){
                 detects <- detects + y.I[group.idx[i],j,k]
               }
