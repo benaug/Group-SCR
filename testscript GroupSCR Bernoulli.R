@@ -74,7 +74,7 @@ Nimdata <- list(y.I=data$y.I.obs,y.I.unobs=array(0,dim=c(M,J,K)),
 parameters <- c('psi',"lambda.P","p0.P","sigma.P","p.I","N.group","N.ind","psi")
 
 
-start.time<-Sys.time()
+start.time <- Sys.time()
 Rmodel <- nimbleModel(code=NimModel, constants=constants, data=Nimdata,check=FALSE,
                       inits=Niminits)
 conf <- configureMCMC(Rmodel,monitors=parameters, thin=1, useConjugacy = TRUE)
@@ -115,9 +115,9 @@ Cmodel <- compileNimble(Rmodel)
 Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
 
 # Run the model
-start.time2<-Sys.time()
+start.time2 <- Sys.time()
 Cmcmc$run(1000,reset=FALSE) #short run for demonstration. Can run again to continue sampling where it stopped.
-end.time<-Sys.time()
+end.time <- Sys.time()
 end.time-start.time  # total time for compilation, replacing samplers, and fitting
 end.time-start.time2 # post-compilation run time
 

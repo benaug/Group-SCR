@@ -3,10 +3,10 @@ dztpoisR <- function(k,lambda){
 }
 
 init.group.Bernoulli <- function(data,M=NA,inits=NA){
-  buff<- data$buff
-  X<-as.matrix(data$X)
-  xlim<- c(min(X[,1]),max(X[,1]))+c(-buff, buff)
-  ylim<- c(min(X[,2]),max(X[,2]))+c(-buff, buff)
+  buff <- data$buff
+  X <- as.matrix(data$X)
+  xlim <- c(min(X[,1]),max(X[,1]))+c(-buff, buff)
+  ylim <- c(min(X[,2]),max(X[,2]))+c(-buff, buff)
   lambda.P <- inits$lambda.P
   p0.P <- inits$p0.P
   sigma.P <- inits$sigma.P
@@ -73,7 +73,7 @@ init.group.Bernoulli <- function(data,M=NA,inits=NA){
   }
   
   #group site use likelihood
-  D<- e2dist(s, X)
+  D <- e2dist(s, X)
   pd <- lamd.cand <- p0.P*exp(-D*D/(2*sigma.P*sigma.P))
   ll.yp <- dbinom(y.P,1,pd,log=TRUE)
   ll.yp.sum <- sum(ll.yp)

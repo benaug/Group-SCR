@@ -1,13 +1,13 @@
 NimModel <- nimbleCode({
   #group size prior
-  lambda.P~dunif(0,100)
+  lambda.P ~ dunif(0,100)
   #group site visitation priors
-  lam0.P~dunif(0,10)
-  sigma.P~dunif(0,100)
+  lam0.P ~ dunif(0,10)
+  sigma.P ~ dunif(0,100)
   #individual detection prior
-  lambda.I~dunif(0,10)
+  lambda.I ~ dunif(0,10)
   #group data augmentation prior
-  psi~dunif(0,1)
+  psi ~ dunif(0,1)
   #group likelihoods
   for(i in 1:M){
     z[i] ~ dbern(psi)
@@ -83,8 +83,8 @@ rIndNoDetect <- nimbleFunction(
   run = function(n=integer(0), y.P = double(2), z = double(0), counts.zero = double(0),
                  lambda.I = double(0)) {
     returnType(double(2))
-    J=nimDim(y.P)[1]
-    K=nimDim(y.P)[2]
+    J <- nimDim(y.P)[1]
+    K <- nimDim(y.P)[2]
     return(matrix(0,nrow=J,ncol=K))
   }
 )
@@ -94,9 +94,9 @@ dztpois <- nimbleFunction(
   run = function(x=double(0), lambda.P = double(0), log = integer(0)) {
     returnType(double(0))  
     if(x==0){
-      prob = 0
+      prob <- 0
     }else{
-      prob = dpois(x, lambda.P)/(1 - exp(-lambda.P))
+      prob <- dpois(x, lambda.P)/(1 - exp(-lambda.P))
     }
     if(log){
       return(log(prob))
@@ -114,7 +114,7 @@ rztpois <- nimbleFunction(
     if(n>1){
       print("rztpois only handles n=1")
     }else{
-      tol=1e-10
+      tol <- 1e-10
       if(lambda.P < tol){
         x <- 1 #if lambda practically 0, all obs will be 1
       }else{
@@ -152,21 +152,21 @@ countSampler <- nimbleFunction(
       #You must account for this or it won't work.
       for(up in 1:count.ups){ #how many updates per iteration?
         #propose to add/subtract 1
-        updown=rbinom(1,1,0.5) #p=0.5 is symmetric
-        reject=FALSE #we reject if 1) proposed counts <1 (bc zero-truncation) or 
+        updown <- rbinom(1,1,0.5) #p=0.5 is symmetric
+        reject <- FALSE #we reject if 1) proposed counts <1 (bc zero-truncation) or 
         #2) you select a detected individual
         if(updown==0){#subtract
-          counts.cand=model$counts[i]-1
+          counts.cand <- model$counts[i]-1
           if(model$counts[i]<1){
-            reject=TRUE
+            reject <- TRUE
           }else{
-            tmp=rcat(1,rep(1/model$counts[i],model$counts[i])) #select one of the individuals in this group
+            tmp <- rcat(1,rep(1/model$counts[i],model$counts[i])) #select one of the individuals in this group
             if(tmp<=counts.detected){ #is it one of the detected individuals?
-              reject=TRUE #if so, we reject
+              reject <- TRUE #if so, we reject
             }
           }
         }else{#add
-          counts.cand=model$counts[i]+1
+          counts.cand <- model$counts[i]+1
         }
         if(!reject){
           model.lp.initial <- model$getLogProb(calcNodes)
