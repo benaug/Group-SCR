@@ -3,7 +3,8 @@ Group SCR sampler from Emmett et al. (2021) implemented in Nimble. Assumes indiv
 
 https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecy.3576
 
-These nimble samplers use single data augmentation (for groups) rather than double data augmentation (for groups and individuals) as in the original paper. Individual data augmentation not necessary without individual covariates and/or random effects. 
+These models use count prior data augmentation for group size only. Could be used for number of groups as well. 
+https://github.com/benaug/SCR-Count-Prior-Data-Augmentation
 
 There are 4 samplers here. Two assume group site visitation and individual detection given group site visitation are count variables. Two others assume they are binary variables. Two other possibilities are that one is a count variable and the other is binary. Versions with binary site visitation run the most quickly and were not provided in Emmett et al. 
 
